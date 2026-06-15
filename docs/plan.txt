@@ -1,0 +1,95 @@
+TÀI LIỆU KỸ THUẬT DỰ ÁN: TWO-TOWER RECOMMENDATION SYSTEM TÍCH HỢP LLM
+1. Kiến Trúc Lõi (Core Architecture)
+Hệ thống sử dụng kiến trúc Mạng nơ-ron Tháp Đôi (Two-Tower) kết hợp LLM để Reranking, đảm bảo độ trễ thấp (<20ms) cho pha Retrieval và tính cá nhân hóa cao cho pha Serving.
+
+Item Tower (Offline):
+
+Mô hình: BAAI/bge-small-en-v1.5.
+
+Nhiệm vụ: Chuyển hóa trường item_text_context thành vector 384 chiều.
+
+Trạng thái mô hình: ĐÓNG BĂNG (Frozen), không huấn luyện lại.
+
+Xử lý dữ liệu: Xử lý chunking qua PyArrow để chống OOM RAM. Dữ liệu đầu ra lưu trữ trực tiếp trên Google Cloud Storage (GCS) dưới định dạng Parquet.
+
+User Tower (Online/Training):
+
+Đầu vào: Dữ liệu Tabular (nhân khẩu học, hành vi).
+
+Kiến trúc: Mạng Multi-Layer Perceptron (MLP) xây dựng bằng PyTorch Lightning.
+
+Nhiệm vụ: Ép kiểu các đặc trưng tabular thành không gian vector 384 chiều để căn chỉnh (alignment) với Item Vector (thông qua Dot Product/Cosine Similarity).
+
+Môi trường Training: Nền tảng Lightning.ai (GPU L4) tối ưu hóa với Mixed-Precision (16-bit).
+
+LLM API & Serving (Đáy phễu):
+
+Nhiệm vụ: Nhận Top 100 items từ khối Two-Tower để Rerank hoặc sinh giải thích (Explainable AI) mang tính cá nhân hóa.
+
+Công cụ: LLM API (Gemini/OpenAI).
+
+FinOps: Bắt buộc áp dụng Semantic Caching để giảm tải API call và tối ưu chi phí.
+
+2. Tiến Độ Dự Án Hiện Tại (Project Status)
+Dự án đang trong giai đoạn chuyển giao từ Model Training (Bước 3) sang Cloud Infra & Serving (Bước 4).
+
+Các Hạng Mục Đã Hoàn Thành:
+Data Lakehouse (B1 & B2): Đã xây dựng hoàn thiện kiến trúc Medallion (Bronze -> Silver -> Gold) trên tập dữ liệu Amazon Reviews. Stack công nghệ sử dụng là Apache Iceberg và PySpark.
+
+Item Tower (B2): Hoàn tất toàn bộ pipeline nhúng (embedding). Các vector đã được sinh ra và lưu trữ an toàn dưới dạng file Parquet trên GCS.
+
+Feature Store - Feast (B2):
+
+Registry: Đã thông luồng bằng GCS.
+
+Online Store: Google Cloud Datastore.
+
+Trạng thái: Đã chạy thành công luồng Materialize. Feature retrieval qua API cho Online Store đã hoạt động ổn định.
+
+Model Training (B3):
+
+Đã thiết lập xong kiến trúc mã nguồn huấn luyện bằng PyTorch Lightning (dataset.py, model.py, train.py).
+
+Xử lý OOM: Đã khắc phục triệt để lỗi tràn RAM bằng kỹ thuật đọc Parquet theo batch thông qua PyArrow (thay thế hoàn toàn Pandas).
+
+Trạng thái hiện tại: Mô hình MLP đang trong quá trình huấn luyện trực tiếp trên GPU L4 của Lightning.ai.
+
+3. Mục Tiêu Sprint Tiếp Theo (Immediate Action Items)
+Trong giai đoạn này, trọng tâm là đóng gói luồng Suy luận (Inference), Đánh giá (Evaluation) và khởi tạo Vector Database.
+
+Phát triển Luồng Suy luận & Đánh giá (predict.py & eval.py):
+
+Viết kịch bản tính toán vector người dùng (User Embeddings) từ các trọng số mô hình đã hội tụ.
+
+Xây dựng luồng đánh giá offline metric (Hit Ratio, NDCG) trên tập validation/test.
+
+Khởi tạo Vector DB (Qdrant) với chiến lược CPU-Only:
+
+Cấu hình Qdrant Engine (có thể dùng container hoặc managed free tier nếu có).
+
+Xây dựng pipeline pipeline nạp (ingest) dữ liệu Item Embeddings định dạng Parquet trực tiếp từ GCS vào Qdrant. Quá trình này được chỉ định chạy trên CPU để tối ưu chi phí.
+
+Tích hợp Feast vào Pipeline Suy luận:
+
+Kết nối trực tiếp predict.py với Feast Online Store.
+
+Truy xuất các user features theo thời gian thực (Real-time) để đẩy vào User Tower, sinh User Vector và thực hiện truy vấn Nearest Neighbor trên Qdrant.
+
+4. Chiến Lược Vận Hành & Tối Ưu Chi Phí (FinOps Guidelines)
+Nguyên tắc vận hành xuyên suốt dự án là "Tận dụng tối đa hệ sinh thái Free và Right-sizing".
+
+Tách biệt Môi trường Train/Serve:
+
+Sử dụng Lightning.ai (GPU L4) TẤT YẾU cho các tác vụ cần năng lực tính toán nặng (Training, Batch Embedding).
+
+Giữ GCP chuyên trách cho CPU-only workloads (Inference, Web API), Storage (GCS) và Database (Datastore, Qdrant).
+
+Quản lý GCP 300$ Credit:
+
+Chưa yêu cầu nâng Quota GPU trên GCP để ngăn chặn nguy cơ kích hoạt thanh toán ngoài ý muốn.
+
+Chỉ sử dụng các dịch vụ Serverless/Managed Database quy mô nhỏ gọn nhất có thể.
+
+Tính toàn vẹn MLOps:
+
+Tuyệt đối tuân thủ nguyên tắc: Dùng Offline Store (Data Lake/Parquet) cho khâu huấn luyện để tránh rò rỉ dữ liệu (Data Leakage) và Dùng Online Store (Datastore) cho khâu Serve để đảm bảo độ trễ thấp.
