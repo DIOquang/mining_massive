@@ -32,9 +32,18 @@ export default function ProductModal({ item, backendUrl, onClose, onSelect, isSe
         ) : (
           <>
             <div className="modal-header">
-              <h3 className="modal-title">{detail?.title || item.title}</h3>
-              <div className="modal-meta">
-                <span className="modal-id">ID: {item.item_id}</span>
+              {detail?.image && <img src={detail.image} alt={detail.title} className="modal-image" />}
+              <div className="modal-header-info">
+                <h3 className="modal-title">{detail?.title || item.title}</h3>
+                {detail?.rating && (
+                  <div className="modal-rating">
+                    <span className="stars">{'★'.repeat(Math.round(detail.rating))}{'☆'.repeat(5-Math.round(detail.rating))}</span>
+                    <span className="rating-score"> {detail.rating} ({detail.review_count} đánh giá)</span>
+                  </div>
+                )}
+                <div className="modal-meta">
+                  <span className="modal-id">ID: {item.item_id}</span>
+                </div>
               </div>
             </div>
 

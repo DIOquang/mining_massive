@@ -1,4 +1,5 @@
 import pyarrow.dataset as ds
+import pyarrow.parquet as pq
 import pyarrow.compute as pc
 import numpy as np
 from google.cloud import firestore
@@ -44,33 +45,44 @@ def create_qdrant_collection():
 
 
 def load_embeddings_subset() -> dict:
-    """Đọc ngẫu nhiên SUBSET_SIZE embeddings từ GCS Parquet."""
-    log.info(f"⏳ Đang đọc embeddings từ GCS: {GCS_EMBEDDINGS}")
-    dataset = ds.dataset(GCS_EMBEDDINGS, format="parquet")
-    total   = dataset.count_rows()
-    log.info(f"  Tổng số items trong GCS: {total:,}")
+    """Đọc nhanh bằng cách lấy ngẫu nhiên một số file Parquet từ GCS."""
+    log.info(f"⏳ Liệt kê các file Parquet trong GCS: {GCS_EMBEDDINGS}")
+    from google.cloud import storage as gcs_storage
+    import re
 
-    # Lấy ngẫu nhiên SUBSET_SIZE chỉ số
-    indices = sorted(random.sample(range(total), min(SUBSET_SIZE, total)))
+    bucket_name = "amazon-reviews-lakehouse-warehouse"
+    prefix      = "warehouse/gold/item_embeddings/"
+    client      = gcs_storage.Client(project=PROJECT_ID)
+    blobs       = list(client.list_blobs(bucket_name, prefix=prefix))
+    parquet_files = [
+        f"gs://{bucket_name}/{b.name}"
+        for b in blobs if b.name.endswith(".parquet")
+    ]
+    log.info(f"  Tổng số file Parquet: {len(parquet_files)}")
 
-    # Đọc từng batch, lọc theo chỉ số
+    # Tính số file cần đọc để đủ ~SUBSET_SIZE rows
+    # Mỗi file chunk_size=100,000 rows → cần ~2-3 files cho 200K
+    n_files = max(2, SUBSET_SIZE // 100_000 + 1)
+    selected_files = random.sample(parquet_files, min(n_files, len(parquet_files)))
+    log.info(f"  Đọc {len(selected_files)} file ngẫu nhiên: {[f.split('/')[-1] for f in selected_files]}")
+
     item_ids   = []
     embeddings = []
-    seen = 0
-    idx_set = set(indices)
 
-    for batch in dataset.to_batches(columns=["item_id", "embedding"]):
-        n = len(batch)
-        for local_i in range(n):
-            global_i = seen + local_i
-            if global_i in idx_set:
-                item_ids.append(batch.column("item_id")[local_i].as_py())
-                embeddings.append(batch.column("embedding")[local_i].as_py())
-        seen += n
+    for fpath in selected_files:
+        log.info(f"  📖 Đang đọc: {fpath.split('/')[-1]}")
+        table = pq.read_table(fpath, columns=["item_id", "embedding"])
+        for i in range(len(table)):
+            item_ids.append(table.column("item_id")[i].as_py())
+            embeddings.append(table.column("embedding")[i].as_py())
         if len(item_ids) >= SUBSET_SIZE:
             break
 
-    log.info(f"✅ Đã tải {len(item_ids):,} embeddings")
+    # Cắt đúng SUBSET_SIZE
+    item_ids   = item_ids[:SUBSET_SIZE]
+    embeddings = embeddings[:SUBSET_SIZE]
+
+    log.info(f"✅ Đã tải {len(item_ids):,} embeddings từ {len(selected_files)} file")
     return {"item_ids": item_ids, "embeddings": embeddings}
 
 

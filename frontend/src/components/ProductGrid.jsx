@@ -30,7 +30,7 @@ export default function ProductGrid({ onItemClick, clickedItems, backendUrl }) {
     const fetchProducts = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`${backendUrl}/products?category=${selectedCategory}&limit=24`)
+        const res = await fetch(`${backendUrl}/products?category=${selectedCategory}&limit=100`)
         if (!res.ok) throw new Error('Không thể tải sản phẩm')
         const data = await res.json()
         setProducts(data.products || [])
@@ -77,9 +77,23 @@ export default function ProductGrid({ onItemClick, clickedItems, backendUrl }) {
               style={{ background: CATEGORY_COLORS[selectedCategory] }}
             >
               <div className="product-card-inner">
-                <div className="product-icon">{DEMO_CATEGORIES.find(c => c.id === selectedCategory)?.icon}</div>
-                <div className="product-title">{item.title}</div>
-                <div className="product-score">Relevance: {(item.score * 100).toFixed(0)}%</div>
+                {item.image ? (
+                  <img src={item.image} alt={item.title} className="product-image" />
+                ) : (
+                  <div className="product-icon">{DEMO_CATEGORIES.find(c => c.id === selectedCategory)?.icon}</div>
+                )}
+                <div className="product-info">
+                  <div className="product-title">{item.title}</div>
+                  {item.rating && (
+                    <div className="product-rating">
+                      <span className="stars">{'★'.repeat(Math.round(item.rating))}{'☆'.repeat(5-Math.round(item.rating))}</span>
+                      <span className="rating-score"> {item.rating} ({item.review_count})</span>
+                    </div>
+                  )}
+                  {item.context && (
+                    <div className="product-review">"{item.context.substring(0, 80)}..."</div>
+                  )}
+                </div>
               </div>
 
               <div className="product-actions">

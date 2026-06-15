@@ -12,47 +12,30 @@ from dataset import UserTowerDataset
 from model import UserTowerLightning
 
 def load_local_data_optimized():
-    print("⏳ Bước 1: Đang tải Dữ liệu huấn luyện từ Ổ CỨNG LOCAL...")
-    train_path = "local_data/training_data/part-00000.parquet"
+    print("⏳ Bước 1: Đang tải Dữ liệu huấn luyện đã được gộp sẵn (Pre-joined)...")
+    # Đọc trực tiếp từ thư mục gốc, bỏ qua file extract bị lỗi
+    train_path = "/teamspace/studios/this_studio/local_data/ready_to_train"
     
     if not os.path.exists(train_path):
         raise FileNotFoundError(f"❌ Không tìm thấy tệp dữ liệu huấn luyện tại {train_path}")
         
-    df_train = pq.read_table(train_path).to_pandas()
-    print(f"   ✅ Đã nạp {len(df_train)} dòng dữ liệu tương tác.")
+    print("   ⚠️ Đang trích xuất tối đa 2 triệu dòng để tránh tràn bộ nhớ (OOM)...")
+    # Sử dụng dataset và head() để đọc một phần dữ liệu, tránh tràn RAM nếu file parquet quá khổng lồ
+    dataset = ds.dataset(train_path, format="parquet")
+    df_train = dataset.head(2_000_000).to_pandas()
+    print(f"   ✅ Đã nạp {len(df_train)} dòng dữ liệu tương tác (đã kèm sẵn embedding).")
     
-    needed_item_ids = set(df_train["item_id"].unique())
-    print(f"   📋 Tìm thấy {len(needed_item_ids)} sản phẩm độc nhất cần lấy Vector.")
-
-    print("\n⏳ Bước 2: Quét tập 14GB Embeddings cục bộ (Lazy-evaluation)...")
-    emb_path = "local_data/item_embeddings"
-    
-    dataset = ds.dataset(emb_path, format="parquet")
-    item_embeddings_dict = {}
-    
-    # Đọc tối ưu: Giữ nguyên định dạng C++ Array của PyArrow trong bộ nhớ
-    for batch in dataset.to_batches(columns=["item_id", "embedding"]):
-        ids = batch.column("item_id").to_pylist()
-        # TUYỆT ĐỐI KHÔNG dùng .to_pylist() trên cột embedding ở đây nữa
-        emb_column = batch.column("embedding")
-        
-        for idx, item_id in enumerate(ids):
-            if item_id in needed_item_ids:
-                # SỬA LỖI: Chỉ ép kiểu sang Python Object duy nhất cho phần tử trúng tuyển
-                item_embeddings_dict[item_id] = np.array(emb_column[idx].as_py(), dtype=np.float32)
-                
-    print(f"   ✅ Đã nạp thành công {len(item_embeddings_dict)} vectors phù hợp vào RAM. Bộ nhớ an toàn!")
-    return df_train, item_embeddings_dict
+    return df_train
 
 def main():
     # Ép kiểu float32 matmul về mức 'medium' để tận dụng tối đa kiến trúc phần cứng GPU L4
     torch.set_float32_matmul_precision('medium')
 
-    # 1. Tải dữ liệu siêu nhẹ
-    df_train, item_embeddings_dict = load_local_data_optimized()
+    # 1. Tải dữ liệu siêu nhẹ (đã gộp sẵn)
+    df_train = load_local_data_optimized()
     
     # 2. Đóng gói dữ liệu
-    train_dataset = UserTowerDataset(df_train, item_embeddings_dict)
+    train_dataset = UserTowerDataset(df_train)
     
     # 3. Khởi tạo DataLoader
     train_loader = DataLoader(
@@ -79,6 +62,7 @@ def main():
 
     # 6. Khởi tạo Lightning Trainer
     trainer = pl.Trainer(
+        max_steps=5000,       # DỪNG SỚM sau 5.000 bước (Khoảng vài tiếng tùy GPU) để tiết kiệm Credit
         max_epochs=10,        
         accelerator="gpu",
         devices="auto",

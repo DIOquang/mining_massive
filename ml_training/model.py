@@ -7,13 +7,30 @@ class UserTowerLightning(pl.LightningModule):
         super().__init__()
         self.save_hyperparameters()
         
-        # Cấu trúc mạng MLP
+        # Cấu trúc mạng MLP (Đã được nâng cấp để vắt kiệt sức mạnh GPU và học sâu hơn)
+        # Tăng số lượng tham số từ 50K lên khoảng 4.7 Triệu tham số.
         self.mlp = nn.Sequential(
-            nn.Linear(input_dim, 128),
-            nn.BatchNorm1d(128),
+            nn.Linear(input_dim, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            
+            nn.Linear(1024, 2048),
+            nn.BatchNorm1d(2048),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            
+            nn.Linear(2048, 1024),
+            nn.BatchNorm1d(1024),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            
+            nn.Linear(1024, 512),
+            nn.BatchNorm1d(512),
             nn.ReLU(),
             nn.Dropout(0.2),
-            nn.Linear(128, output_dim)
+            
+            nn.Linear(512, output_dim)
         )
         
         # Hàm loss đánh giá phân loại nhị phân

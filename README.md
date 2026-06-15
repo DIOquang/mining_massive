@@ -511,12 +511,16 @@ mining_massive/
 │   ├── 📄 model.py                # UserTowerLightning: MLP architecture (PyTorch Lightning)
 │   ├── 📄 dataset.py              # UserTowerDataset: PyTorch Dataset wrapper
 │   ├── 📄 train.py                # Training script: DataLoader, Trainer, Checkpoint
-│   ├── 📄 download_data.py        # GCS → Local: Multi-threaded data download
+│   ├── 📄 prepare_data.py         # Tiền xử lý dữ liệu huấn luyện
 │   └── 📓 generate_training_data.ipynb  # Sinh dữ liệu huấn luyện (Positive + Negative)
 │
-└── 🔮 INFERENCE (Coming Soon)
-    ├── 📄 predict.py              # [Planned] User embedding inference
-    └── 📄 eval.py                 # [Planned] Offline evaluation (Hit Ratio, NDCG)
+├── 🌐 BACKEND (API & INFERENCE)
+│   ├── 📄 main.py                 # FastAPI Phục vụ Mô hình, Qdrant & Gemini Reranking
+│   └── 📄 Dockerfile              # Docker config cho Cloud Run
+│
+└── 💻 FRONTEND (Giao diện Người dùng)
+    ├── 📁 src/components/         # React Components (ProductGrid, ProductModal, ...)
+    └── 📄 firebase.json           # Cấu hình deploy Firebase Hosting
 ```
 
 ---
@@ -578,11 +582,12 @@ feast materialize <START_DATE> <END_DATE>
 | Data Lakehouse (Medallion) | ✅ Hoàn thành | Bronze → Silver → Gold trên Apache Iceberg |
 | Item Tower Embedding | ✅ Hoàn thành | ~14GB vectors trên GCS |
 | Feast Feature Store | ✅ Hoàn thành | Online Store (Datastore) hoạt động ổn định |
-| User Tower Training | 🔄 Đang chạy | MLP training trên GPU L4 |
-| Inference Pipeline | 📋 Lên kế hoạch | predict.py + Qdrant integration |
-| Offline Evaluation | 📋 Lên kế hoạch | Hit Ratio, NDCG metrics |
-| LLM Reranking | 📋 Lên kế hoạch | Gemini API + Semantic Cache |
-| Serving API | 📋 Lên kế hoạch | FastAPI trên Cloud Run |
+| User Tower Training | ✅ Hoàn thành | MLP training thành công, loss ~0.39 |
+| Inference Pipeline | ✅ Hoàn thành | Tích hợp thành công với Qdrant Vector DB |
+| Offline Evaluation | ✅ Hoàn thành | Đánh giá mô hình thành công |
+| LLM Reranking | ✅ Hoàn thành | Tích hợp Gemini API và Caching thành công |
+| Serving API | ✅ Hoàn thành | Triển khai FastAPI, kết nối Frontend thành công |
+| Frontend App | ✅ Hoàn thành | Ứng dụng web React, deploy Firebase |
 
 ---
 
