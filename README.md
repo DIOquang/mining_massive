@@ -59,59 +59,59 @@ Dự án xây dựng một **hệ thống gợi ý (Recommendation System)** end
 graph TB
     subgraph DATA_SOURCES["🗄️ NGUỒN DỮ LIỆU"]
         direction LR
-        DS1["📦 Amazon Reviews<br/>Raw Dataset"]
-        DS2["📦 Item Metadata<br/>Title, Category, Price"]
+        DS1["📦 Đánh giá Amazon<br/>Dữ liệu Thô"]
+        DS2["📦 Siêu dữ liệu Sản phẩm<br/>Tiêu đề, Danh mục, Giá"]
     end
 
-    subgraph DATA_LAKEHOUSE["🧊 DATA LAKEHOUSE — Medallion Architecture"]
+    subgraph DATA_LAKEHOUSE["🧊 DATA LAKEHOUSE — Kiến trúc Medallion"]
         direction LR
-        BRONZE["🥉 Bronze Layer<br/>━━━━━━━━━━━━━<br/>Raw Ingestion<br/>Apache Iceberg<br/>PySpark"]
-        SILVER["🥈 Silver Layer<br/>━━━━━━━━━━━━━<br/>Cleaned & Validated<br/>Deduplication<br/>Type Casting"]
-        GOLD["🥇 Gold Layer<br/>━━━━━━━━━━━━━<br/>Feature-Ready<br/>User Stats<br/>Item Text Context"]
-        BRONZE -->|"Cleansing<br/>& Validation"| SILVER
-        SILVER -->|"Aggregation<br/>& Enrichment"| GOLD
+        BRONZE["🥉 Tầng Đồng (Bronze)<br/>━━━━━━━━━━━━━<br/>Nạp dữ liệu thô<br/>Apache Iceberg<br/>PySpark"]
+        SILVER["🥈 Tầng Bạc (Silver)<br/>━━━━━━━━━━━━━<br/>Làm sạch & Xác thực<br/>Khử trùng lặp<br/>Ép kiểu dữ liệu"]
+        GOLD["🥇 Tầng Vàng (Gold)<br/>━━━━━━━━━━━━━<br/>Sẵn sàng tạo đặc trưng<br/>Thống kê Người dùng<br/>Ngữ cảnh Sản phẩm"]
+        BRONZE -->|"Làm sạch<br/>& Xác thực"| SILVER
+        SILVER -->|"Tổng hợp<br/>& Làm giàu"| GOLD
     end
 
-    subgraph FEATURE_STORE["🏪 FEAST — Feature Store"]
+    subgraph FEATURE_STORE["🏪 FEAST — Cửa hàng Đặc trưng (Feature Store)"]
         direction TB
-        OFFLINE["📁 Offline Store<br/>━━━━━━━━━━━━━<br/>GCS Parquet<br/>Training Data"]
-        ONLINE["⚡ Online Store<br/>━━━━━━━━━━━━━<br/>GCP Datastore<br/>Low-latency Serving"]
-        REGISTRY["📋 Registry<br/>GCS-backed"]
+        OFFLINE["📁 Lưu trữ Ngoại tuyến<br/>━━━━━━━━━━━━━<br/>GCS Parquet<br/>Dữ liệu Huấn luyện"]
+        ONLINE["⚡ Lưu trữ Trực tuyến<br/>━━━━━━━━━━━━━<br/>GCP Datastore<br/>Phục vụ Độ trễ thấp"]
+        REGISTRY["📋 Sổ đăng ký<br/>Lưu trên GCS"]
         OFFLINE -.->|"feast materialize"| ONLINE
     end
 
-    subgraph ML_TRAINING["🧠 ML TRAINING PLATFORM — Lightning.ai GPU L4"]
+    subgraph ML_TRAINING["🧠 NỀN TẢNG HUẤN LUYỆN ML — Lightning.ai GPU L4"]
         direction TB
-        ITEM_TOWER["🗼 Item Tower<br/>━━━━━━━━━━━━━<br/>BAAI/bge-small-en-v1.5<br/>384-dim Vectors<br/>🔒 FROZEN"]
-        USER_TOWER["🗼 User Tower<br/>━━━━━━━━━━━━━<br/>MLP Network<br/>PyTorch Lightning<br/>🔥 TRAINABLE"]
-        CHECKPOINT["💾 Model<br/>Checkpoint"]
+        ITEM_TOWER["🗼 Tháp Sản phẩm<br/>━━━━━━━━━━━━━<br/>BAAI/bge-small-en-v1.5<br/>Vector 384 chiều<br/>🔒 ĐÓNG BĂNG"]
+        USER_TOWER["🗼 Tháp Người dùng<br/>━━━━━━━━━━━━━<br/>Mạng MLP<br/>PyTorch Lightning<br/>🔥 CÓ THỂ HUẤN LUYỆN"]
+        CHECKPOINT["💾 Điểm lưu<br/>Mô hình (Checkpoint)"]
         USER_TOWER -->|"save_top_k=1"| CHECKPOINT
     end
 
-    subgraph INFERENCE["🔮 INFERENCE & SERVING"]
+    subgraph INFERENCE["🔮 SUY LUẬN & PHỤC VỤ (INFERENCE & SERVING)"]
         direction TB
-        QDRANT["🔍 Qdrant<br/>Vector DB<br/>━━━━━━━━━━━━━<br/>ANN Search<br/>CPU-Only"]
-        LLM["🤖 LLM API<br/>━━━━━━━━━━━━━<br/>Gemini / OpenAI<br/>Reranking<br/>Explainable AI"]
-        CACHE["💨 Semantic<br/>Cache"]
-        API["🌐 Serving API<br/>━━━━━━━━━━━━━<br/>FastAPI<br/>Cloud Run"]
+        QDRANT["🔍 Qdrant<br/>Cơ sở dữ liệu Vector<br/>━━━━━━━━━━━━━<br/>Tìm kiếm ANN<br/>Chỉ dùng CPU"]
+        LLM["🤖 API LLM<br/>━━━━━━━━━━━━━<br/>Gemini / OpenAI<br/>Xếp hạng lại<br/>AI Giải thích được"]
+        CACHE["💨 Bộ nhớ đệm<br/>Ngữ nghĩa"]
+        API["🌐 API Phục vụ<br/>━━━━━━━━━━━━━<br/>FastAPI<br/>Cloud Run"]
     end
 
     subgraph END_USER["👤 NGƯỜI DÙNG CUỐI"]
-        USER["🧑‍💻 Client Application"]
+        USER["🧑‍💻 Ứng dụng Máy khách"]
     end
 
     DS1 & DS2 --> BRONZE
     GOLD -->|"item_text_context"| ITEM_TOWER
     GOLD -->|"user_features"| OFFLINE
-    ITEM_TOWER -->|"384-dim Embeddings<br/>Parquet → GCS"| QDRANT
-    OFFLINE -->|"Offline Features"| USER_TOWER
-    CHECKPOINT -->|"Trained Weights"| API
-    ONLINE -->|"Real-time<br/>User Features"| API
-    API -->|"User Vector"| QDRANT
-    QDRANT -->|"Top-100<br/>Candidates"| LLM
-    LLM <-->|"FinOps"| CACHE
-    LLM -->|"Reranked<br/>Top-10"| API
-    API -->|"Recommendations<br/>+ Explanations"| USER
+    ITEM_TOWER -->|"Vector nhúng 384 chiều<br/>Parquet → GCS"| QDRANT
+    OFFLINE -->|"Đặc trưng Ngoại tuyến"| USER_TOWER
+    CHECKPOINT -->|"Trọng số đã huấn luyện"| API
+    ONLINE -->|"Đặc trưng Người dùng<br/>Thời gian thực"| API
+    API -->|"Vector Người dùng"| QDRANT
+    QDRANT -->|"Top-100<br/>Ứng viên"| LLM
+    LLM <-->|"Tối ưu chi phí (FinOps)"| CACHE
+    LLM -->|"Top-10<br/>Đã xếp hạng lại"| API
+    API -->|"Gợi ý<br/>+ Lời giải thích"| USER
 
     classDef bronze fill:#cd7f32,stroke:#8b5a2b,color:#fff
     classDef silver fill:#c0c0c0,stroke:#808080,color:#333
@@ -147,47 +147,47 @@ graph TB
 ```mermaid
 flowchart LR
     subgraph RAW["📥 DỮ LIỆU THÔ"]
-        R1["Amazon Reviews<br/>JSON/CSV"]
-        R2["Item Metadata<br/>JSON"]
+        R1["Đánh giá Amazon<br/>JSON/CSV"]
+        R2["Siêu dữ liệu Sản phẩm<br/>JSON"]
     end
 
-    subgraph BRONZE_LAYER["🥉 BRONZE — Raw Ingestion"]
-        B1["PySpark Reader<br/>━━━━━━━━━━━━━━━<br/>• Schema Inference<br/>• Partition by Category<br/>• Apache Iceberg Format"]
+    subgraph BRONZE_LAYER["🥉 TẦNG ĐỒNG — Nạp dữ liệu thô"]
+        B1["Trình đọc PySpark<br/>━━━━━━━━━━━━━━━<br/>• Suy luận Lược đồ<br/>• Phân vùng theo Danh mục<br/>• Định dạng Apache Iceberg"]
     end
 
-    subgraph SILVER_LAYER["🥈 SILVER — Cleansing & Validation"]
-        S1["Data Quality<br/>━━━━━━━━━━━━━━━<br/>• Null Handling<br/>• Deduplication<br/>• Type Casting<br/>• Outlier Detection"]
-        S2["Entity Resolution<br/>━━━━━━━━━━━━━━━<br/>• user_id Normalization<br/>• item_id Mapping<br/>• Timestamp Alignment"]
+    subgraph SILVER_LAYER["🥈 TẦNG BẠC — Làm sạch & Xác thực"]
+        S1["Chất lượng Dữ liệu<br/>━━━━━━━━━━━━━━━<br/>• Xử lý giá trị Null<br/>• Khử trùng lặp<br/>• Ép kiểu dữ liệu<br/>• Phát hiện Ngoại lệ"]
+        S2["Phân giải Thực thể<br/>━━━━━━━━━━━━━━━<br/>• Chuẩn hóa user_id<br/>• Ánh xạ item_id<br/>• Căn chỉnh Thời gian"]
     end
 
-    subgraph GOLD_LAYER["🥇 GOLD — Feature Engineering"]
+    subgraph GOLD_LAYER["🥇 TẦNG VÀNG — Kỹ nghệ Đặc trưng"]
         direction TB
-        G1["👤 User Features<br/>━━━━━━━━━━━━━━━<br/>• total_reviews: Int64<br/>• avg_rating_given: Float32<br/>• stddev_rating_given: Float32"]
-        G2["📦 Item Features<br/>━━━━━━━━━━━━━━━<br/>• item_text_context: String<br/>  ↳ title + category +<br/>    avg review summary"]
-        G3["🎯 Training Data<br/>━━━━━━━━━━━━━━━<br/>• user_id, item_id<br/>• label: Binary (0/1)<br/>• Negative Sampling"]
+        G1["👤 Đặc trưng Người dùng<br/>━━━━━━━━━━━━━━━<br/>• total_reviews: Int64<br/>• avg_rating_given: Float32<br/>• stddev_rating_given: Float32"]
+        G2["📦 Đặc trưng Sản phẩm<br/>━━━━━━━━━━━━━━━<br/>• item_text_context: String<br/>  ↳ tiêu đề + danh mục +<br/>    tóm tắt đánh giá tb"]
+        G3["🎯 Dữ liệu Huấn luyện<br/>━━━━━━━━━━━━━━━<br/>• user_id, item_id<br/>• nhãn (label): Nhị phân (0/1)<br/>• Lấy mẫu Âm"]
     end
 
-    subgraph FEAST_STORE["🏪 FEAST FEATURE STORE"]
+    subgraph FEAST_STORE["🏪 CỬA HÀNG ĐẶC TRƯNG FEAST"]
         direction TB
-        FS_DEF["📋 Feature Definition<br/>━━━━━━━━━━━━━━━<br/>features.py<br/>━━━━━━━━━━━━━━━<br/>Entity: user_id (STRING)<br/>View: user_statistical_features<br/>TTL: 3650 days"]
-        FS_OFFLINE["📁 Offline Store<br/>━━━━━━━━━━━━━━━<br/>GCS Parquet Files<br/>✅ Cho TRAINING<br/>🔒 Point-in-time Join"]
-        FS_ONLINE["⚡ Online Store<br/>━━━━━━━━━━━━━━━<br/>GCP Datastore<br/>✅ Cho SERVING<br/>⚡ Low-latency Lookup"]
-        FS_REG["📡 Registry<br/>GCS-backed"]
+        FS_DEF["📋 Định nghĩa Đặc trưng<br/>━━━━━━━━━━━━━━━<br/>features.py<br/>━━━━━━━━━━━━━━━<br/>Thực thể: user_id (STRING)<br/>View: user_statistical_features<br/>TTL: 3650 ngày"]
+        FS_OFFLINE["📁 Lưu trữ Ngoại tuyến<br/>━━━━━━━━━━━━━━━<br/>File Parquet trên GCS<br/>✅ Cho HUẤN LUYỆN<br/>🔒 Kết nối đúng thời điểm"]
+        FS_ONLINE["⚡ Lưu trữ Trực tuyến<br/>━━━━━━━━━━━━━━━<br/>GCP Datastore<br/>✅ Cho PHỤC VỤ<br/>⚡ Tra cứu Độ trễ thấp"]
+        FS_REG["📡 Sổ đăng ký<br/>Lưu trên GCS"]
         FS_DEF --> FS_OFFLINE & FS_ONLINE
-        FS_OFFLINE -->|"feast materialize<br/>━━━━━━━━━━━━━━━<br/>Batch Sync"| FS_ONLINE
+        FS_OFFLINE -->|"feast materialize<br/>━━━━━━━━━━━━━━━<br/>Đồng bộ theo Lô"| FS_ONLINE
     end
 
-    subgraph EMBEDDING_PIPELINE["⚡ EMBEDDING PIPELINE"]
+    subgraph EMBEDDING_PIPELINE["⚡ ĐƯỜNG ỐNG NHÚNG (EMBEDDING PIPELINE)"]
         direction TB
         EMB_MODEL["🤖 BAAI/bge-small-en-v1.5<br/>━━━━━━━━━━━━━━━<br/>SentenceTransformer<br/>FP16 • GPU L4"]
-        EMB_CHUNK["📦 Chunk Processing<br/>━━━━━━━━━━━━━━━<br/>chunk_size: 100,000<br/>batch_size: 512<br/>PyArrow Lazy Read"]
-        EMB_UPLOAD["☁️ Async Upload<br/>━━━━━━━━━━━━━━━<br/>ThreadPool (4 workers)<br/>Fire-and-Forget<br/>Snappy Compression"]
-        EMB_OUTPUT["💎 Item Embeddings<br/>━━━━━━━━━━━━━━━<br/>384-dim Float32<br/>Parquet on GCS<br/>~14GB Total"]
+        EMB_CHUNK["📦 Xử lý theo Khối (Chunk)<br/>━━━━━━━━━━━━━━━<br/>chunk_size: 100,000<br/>batch_size: 512<br/>Đọc trễ bằng PyArrow"]
+        EMB_UPLOAD["☁️ Tải lên Bất đồng bộ<br/>━━━━━━━━━━━━━━━<br/>ThreadPool (4 luồng)<br/>Gửi-và-Quên<br/>Nén Snappy"]
+        EMB_OUTPUT["💎 Vector Sản phẩm<br/>━━━━━━━━━━━━━━━<br/>Float32 384 chiều<br/>Parquet trên GCS<br/>Tổng ~14GB"]
         EMB_MODEL --> EMB_CHUNK --> EMB_UPLOAD --> EMB_OUTPUT
     end
 
-    subgraph TRAINING_DATA["🎯 TRAINING OUTPUT"]
-        TD["training_data/<br/>part-00000.parquet<br/>━━━━━━━━━━━━━━━<br/>user_features ⊕<br/>item_embeddings ⊕<br/>binary labels"]
+    subgraph TRAINING_DATA["🎯 ĐẦU RA HUẤN LUYỆN"]
+        TD["training_data/<br/>part-00000.parquet<br/>━━━━━━━━━━━━━━━<br/>user_features ⊕<br/>item_embeddings ⊕<br/>nhãn nhị phân"]
     end
 
     R1 & R2 --> B1
@@ -196,8 +196,8 @@ flowchart LR
     G1 --> FS_DEF
     G2 --> EMB_MODEL
     G3 --> TD
-    FS_OFFLINE -.->|"🔒 TRAIN ONLY<br/>Anti Data Leakage"| TD
-    EMB_OUTPUT -.->|"Item Vectors"| TD
+    FS_OFFLINE -.->|"🔒 CHỈ HUẤN LUYỆN<br/>Chống rò rỉ dữ liệu"| TD
+    EMB_OUTPUT -.->|"Vector Sản phẩm"| TD
 
     style RAW fill:#1e293b,stroke:#475569,color:#e2e8f0
     style BRONZE_LAYER fill:#92400e,stroke:#78350f,color:#fef3c7
@@ -228,45 +228,45 @@ flowchart LR
 
 ```mermaid
 graph TB
-    subgraph INPUT_LAYER["📥 INPUT LAYER"]
+    subgraph INPUT_LAYER["📥 TẦNG ĐẦU VÀO"]
         direction LR
-        UI["👤 User Input<br/>━━━━━━━━━━━━━━━━<br/>• total_reviews<br/>• avg_rating_given<br/>• stddev_rating_given<br/>━━━━━━━━━━━━━━━━<br/>Tensor: [batch, 3]<br/>dtype: float32"]
-        II["📦 Item Input<br/>━━━━━━━━━━━━━━━━<br/>item_text_context<br/>━━━━━━━━━━━━━━━━<br/>Type: String<br/>Avg ~200 tokens"]
+        UI["👤 Đầu vào Người dùng<br/>━━━━━━━━━━━━━━━━<br/>• total_reviews<br/>• avg_rating_given<br/>• stddev_rating_given<br/>━━━━━━━━━━━━━━━━<br/>Tensor: [batch, 3]<br/>dtype: float32"]
+        II["📦 Đầu vào Sản phẩm<br/>━━━━━━━━━━━━━━━━<br/>item_text_context<br/>━━━━━━━━━━━━━━━━<br/>Kiểu: Chuỗi (String)<br/>Trung bình ~200 tokens"]
     end
 
-    subgraph USER_TOWER_DETAIL["🗼 USER TOWER — Trainable MLP"]
+    subgraph USER_TOWER_DETAIL["🗼 THÁP NGƯỜI DÙNG — MLP Có thể Huấn luyện"]
         direction TB
-        U_FC1["🔵 Linear Layer 1<br/>━━━━━━━━━━━━━━━━<br/>nn.Linear(3, 128)<br/>Params: 512"]
-        U_BN1["📊 BatchNorm1d(128)<br/>━━━━━━━━━━━━━━━━<br/>Normalize Activations"]
-        U_ACT1["⚡ ReLU Activation<br/>━━━━━━━━━━━━━━━━<br/>Non-linearity"]
-        U_DROP["💧 Dropout(0.2)<br/>━━━━━━━━━━━━━━━━<br/>Regularization"]
-        U_FC2["🔵 Linear Layer 2<br/>━━━━━━━━━━━━━━━━<br/>nn.Linear(128, 384)<br/>Params: 49,536"]
-        U_OUT["🎯 User Vector<br/>━━━━━━━━━━━━━━━━<br/>Tensor: [batch, 384]"]
+        U_FC1["🔵 Tầng Tuyến tính 1<br/>━━━━━━━━━━━━━━━━<br/>nn.Linear(3, 128)<br/>Tham số: 512"]
+        U_BN1["📊 BatchNorm1d(128)<br/>━━━━━━━━━━━━━━━━<br/>Chuẩn hóa Hoạt hóa"]
+        U_ACT1["⚡ Hàm kích hoạt ReLU<br/>━━━━━━━━━━━━━━━━<br/>Tính phi tuyến"]
+        U_DROP["💧 Dropout(0.2)<br/>━━━━━━━━━━━━━━━━<br/>Chống quá khớp (Regularization)"]
+        U_FC2["🔵 Tầng Tuyến tính 2<br/>━━━━━━━━━━━━━━━━<br/>nn.Linear(128, 384)<br/>Tham số: 49,536"]
+        U_OUT["🎯 Vector Người dùng<br/>━━━━━━━━━━━━━━━━<br/>Tensor: [batch, 384]"]
 
         U_FC1 --> U_BN1 --> U_ACT1 --> U_DROP --> U_FC2 --> U_OUT
     end
 
-    subgraph ITEM_TOWER_DETAIL["🗼 ITEM TOWER — Frozen Encoder"]
+    subgraph ITEM_TOWER_DETAIL["🗼 THÁP SẢN PHẨM — Bộ mã hóa Đóng băng"]
         direction TB
-        I_TOK["✂️ Tokenizer<br/>━━━━━━━━━━━━━━━━<br/>WordPiece<br/>Max Length: 512"]
-        I_BERT["🧊 BAAI/bge-small-en-v1.5<br/>━━━━━━━━━━━━━━━━<br/>Transformer Encoder<br/>6 Layers, 384 Hidden<br/>🔒 ALL WEIGHTS FROZEN"]
-        I_POOL["🔄 Mean Pooling<br/>━━━━━━━━━━━━━━━━<br/>+ L2 Normalization"]
-        I_OUT["🎯 Item Vector<br/>━━━━━━━━━━━━━━━━<br/>Tensor: [batch, 384]<br/>Normalized ∈ unit sphere"]
+        I_TOK["✂️ Bộ tách từ (Tokenizer)<br/>━━━━━━━━━━━━━━━━<br/>WordPiece<br/>Độ dài Tối đa: 512"]
+        I_BERT["🧊 BAAI/bge-small-en-v1.5<br/>━━━━━━━━━━━━━━━━<br/>Bộ mã hóa Transformer<br/>6 Tầng, Kích thước 384<br/>🔒 ĐÓNG BĂNG MỌI TRỌNG SỐ"]
+        I_POOL["🔄 Gom nhóm Trung bình<br/>━━━━━━━━━━━━━━━━<br/>+ Chuẩn hóa L2"]
+        I_OUT["🎯 Vector Sản phẩm<br/>━━━━━━━━━━━━━━━━<br/>Tensor: [batch, 384]<br/>Chuẩn hóa ∈ hình cầu đơn vị"]
 
         I_TOK --> I_BERT --> I_POOL --> I_OUT
     end
 
-    subgraph INTERACTION["🤝 INTERACTION LAYER"]
+    subgraph INTERACTION["🤝 TẦNG TƯƠNG TÁC"]
         direction TB
-        DOT["⊙ Dot Product<br/>━━━━━━━━━━━━━━━━<br/>logits = Σ(user ⊙ item)<br/>Tensor: [batch]"]
-        LOSS["📉 BCEWithLogitsLoss<br/>━━━━━━━━━━━━━━━━<br/>Binary Cross-Entropy<br/>with Sigmoid"]
-        LABEL["🏷️ Labels<br/>━━━━━━━━━━━━━━━━<br/>1 = Positive Interaction<br/>0 = Negative Sample"]
+        DOT["⊙ Tích Vô hướng (Dot Product)<br/>━━━━━━━━━━━━━━━━<br/>logits = Σ(user ⊙ item)<br/>Tensor: [batch]"]
+        LOSS["📉 BCEWithLogitsLoss<br/>━━━━━━━━━━━━━━━━<br/>Entropy Chéo Nhị phân<br/>kèm Sigmoid"]
+        LABEL["🏷️ Nhãn (Labels)<br/>━━━━━━━━━━━━━━━━<br/>1 = Tương tác Tích cực<br/>0 = Mẫu Âm"]
     end
 
-    subgraph OPTIMIZER["⚙️ TRAINING CONFIG"]
+    subgraph OPTIMIZER["⚙️ CẤU HÌNH HUẤN LUYỆN"]
         direction LR
-        OPT["🔧 AdamW Optimizer<br/>━━━━━━━━━━━━━━━━<br/>lr: 1e-3<br/>weight_decay: 1e-4"]
-        PREC["⚡ Mixed Precision<br/>━━━━━━━━━━━━━━━━<br/>16-bit (FP16)<br/>GPU L4 Optimized"]
+        OPT["🔧 Bộ tối ưu hóa AdamW<br/>━━━━━━━━━━━━━━━━<br/>lr: 1e-3<br/>weight_decay: 1e-4"]
+        PREC["⚡ Độ chính xác Hỗn hợp<br/>━━━━━━━━━━━━━━━━<br/>16-bit (FP16)<br/>Tối ưu cho GPU L4"]
         BATCH["📦 DataLoader<br/>━━━━━━━━━━━━━━━━<br/>batch_size: 4096<br/>workers: 4<br/>pin_memory: True"]
     end
 
@@ -275,7 +275,7 @@ graph TB
     U_OUT & I_OUT --> DOT
     DOT --> LOSS
     LABEL --> LOSS
-    LOSS -.->|"Backpropagation<br/>∇ Loss"| U_FC1
+    LOSS -.->|"Lan truyền ngược<br/>∇ Hàm mất mát"| U_FC1
 
     style USER_TOWER_DETAIL fill:#4c1d95,stroke:#6d28d9,color:#ede9fe
     style ITEM_TOWER_DETAIL fill:#164e63,stroke:#155e75,color:#cffafe
@@ -311,49 +311,49 @@ sequenceDiagram
     autonumber
 
     actor User as 👤 Người dùng
-    participant API as 🌐 Serving API<br/>(FastAPI / Cloud Run)
-    participant Feast as 🏪 Feast<br/>Online Store
-    participant UT as 🗼 User Tower<br/>(MLP Model)
+    participant API as 🌐 API Phục vụ<br/>(FastAPI / Cloud Run)
+    participant Feast as 🏪 Feast<br/>Lưu trữ Trực tuyến
+    participant UT as 🗼 Tháp Người dùng<br/>(Mô hình MLP)
     participant Qdrant as 🔍 Qdrant<br/>Vector DB
-    participant Cache as 💨 Semantic<br/>Cache
-    participant LLM as 🤖 LLM API<br/>(Gemini)
+    participant Cache as 💨 Bộ nhớ đệm<br/>Ngữ nghĩa
+    participant LLM as 🤖 API LLM<br/>(Gemini)
 
-    Note over User,LLM: ━━━━━━━ PHASE 1: RETRIEVAL (Target < 20ms) ━━━━━━━
+    Note over User,LLM: ━━━━━━━ GIAI ĐOẠN 1: TRUY XUẤT (Mục tiêu < 20ms) ━━━━━━━
 
     User->>+API: GET /recommend?user_id=U123
     
     API->>+Feast: get_online_features(user_id="U123")
-    Note right of Feast: Truy xuất từ<br/>GCP Datastore<br/>~5ms latency
+    Note right of Feast: Truy xuất từ<br/>GCP Datastore<br/>Độ trễ ~5ms
     Feast-->>-API: {total_reviews, avg_rating, stddev_rating}
 
     API->>+UT: forward(user_features=[12, 4.2, 0.8])
-    Note right of UT: MLP Inference<br/>[3] → [128] → [384]<br/>~1ms on CPU
+    Note right of UT: Suy luận MLP<br/>[3] → [128] → [384]<br/>~1ms trên CPU
     UT-->>-API: user_vector: Float32[384]
 
     API->>+Qdrant: search(vector=user_vector, top_k=100)
-    Note right of Qdrant: Approximate Nearest<br/>Neighbor (ANN)<br/>~10ms CPU-only
+    Note right of Qdrant: Láng giềng Gần nhất<br/>Xấp xỉ (ANN)<br/>~10ms Chỉ dùng CPU
     Qdrant-->>-API: top_100_items: [{id, score, metadata}]
 
-    Note over User,LLM: ━━━━━━━ PHASE 2: RERANKING VIA LLM (Target < 500ms) ━━━━━━━
+    Note over User,LLM: ━━━━━━━ GIAI ĐOẠN 2: XẾP HẠNG LẠI BẰNG LLM (Mục tiêu < 500ms) ━━━━━━━
 
     API->>+Cache: lookup(user_context + top_100_hash)
     
     alt Cache HIT ✅
         Cache-->>API: cached_response: Top-10 + Explanations
-        Note over Cache: 💰 FinOps: Tiết kiệm<br/>1 API call (~$0.01)
+        Note over Cache: 💰 FinOps: Tiết kiệm<br/>1 lệnh gọi API (~$0.01)
     else Cache MISS ❌
         Cache-->>-API: null
         
         API->>+LLM: rerank(user_profile, top_100_items)
-        Note right of LLM: Prompt Engineering:<br/>• User preferences<br/>• Item descriptions<br/>• Diversity constraint<br/>~300ms
+        Note right of LLM: Kỹ nghệ Prompt:<br/>• Sở thích Người dùng<br/>• Mô tả Sản phẩm<br/>• Ràng buộc Đa dạng<br/>~300ms
         LLM-->>-API: reranked_top_10 + explanations
         
         API->>Cache: store(key, reranked_response, TTL=1h)
     end
 
-    Note over User,LLM: ━━━━━━━ PHASE 3: SERVING ━━━━━━━
+    Note over User,LLM: ━━━━━━━ GIAI ĐOẠN 3: PHỤC VỤ (SERVING) ━━━━━━━
 
-    API-->>-User: 📋 Response JSON
+    API-->>-User: 📋 Phản hồi JSON
     
     Note over User: {<br/>  "recommendations": [...top_10...],<br/>  "explanations": [...ai_generated...],<br/>  "latency_ms": 342<br/>}
 ```
@@ -387,56 +387,56 @@ sequenceDiagram
 graph TB
     subgraph FINOPS_PRINCIPLES["💰 NGUYÊN TẮC FINOPS"]
         direction LR
-        P1["🎯 Tận dụng tối đa<br/>hệ sinh thái FREE"]
-        P2["📏 Right-sizing<br/>mọi tài nguyên"]
+        P1["🎯 Tận dụng tối đa<br/>hệ sinh thái MIỄN PHÍ"]
+        P2["📏 Cấp phát đúng cỡ<br/>mọi tài nguyên"]
         P3["🚫 Không nâng<br/>GPU Quota trên GCP"]
     end
 
-    subgraph LIGHTNING_AI["⚡ LIGHTNING.AI — GPU Workloads"]
+    subgraph LIGHTNING_AI["⚡ LIGHTNING.AI — Tác vụ GPU"]
         direction TB
         
-        subgraph GPU_COMPUTE["🎮 GPU L4 Instance"]
-            TRAIN_JOB["🏋️ Training Job<br/>━━━━━━━━━━━━━━━<br/>User Tower MLP<br/>PyTorch Lightning<br/>Mixed Precision FP16<br/>batch_size: 4096<br/>max_epochs: 10"]
-            EMB_JOB["🔄 Batch Embedding<br/>━━━━━━━━━━━━━━━<br/>Item Tower (Frozen)<br/>BGE-small-en-v1.5<br/>chunk: 100K items<br/>~14GB Output"]
+        subgraph GPU_COMPUTE["🎮 Máy ảo GPU L4"]
+            TRAIN_JOB["🏋️ Tác vụ Huấn luyện<br/>━━━━━━━━━━━━━━━<br/>Tháp Người dùng MLP<br/>PyTorch Lightning<br/>Độ chính xác Hỗn hợp FP16<br/>batch_size: 4096<br/>max_epochs: 10"]
+            EMB_JOB["🔄 Nhúng theo Lô<br/>━━━━━━━━━━━━━━━<br/>Tháp Sản phẩm (Đóng băng)<br/>BGE-small-en-v1.5<br/>Khối: 100K Sản phẩm<br/>Đầu ra ~14GB"]
         end
 
-        LA_COST["💳 Chi phí: Included<br/>in Lightning.ai Plan"]
+        LA_COST["💳 Chi phí: Đã bao gồm<br/>trong gói Lightning.ai"]
     end
 
-    subgraph GCP_CLOUD["☁️ GOOGLE CLOUD PLATFORM — CPU-Only Workloads"]
+    subgraph GCP_CLOUD["☁️ NỀN TẢNG GOOGLE CLOUD — Tác vụ Chỉ dùng CPU"]
         direction TB
         
         subgraph GCS_STORAGE["🗄️ Google Cloud Storage"]
-            GCS1["📦 Data Lakehouse<br/>━━━━━━━━━━━━━━━<br/>Bronze/Silver/Gold<br/>Apache Iceberg"]
-            GCS2["📦 Item Embeddings<br/>━━━━━━━━━━━━━━━<br/>384-dim Parquet<br/>~14GB"]
-            GCS3["📦 Feast Registry<br/>━━━━━━━━━━━━━━━<br/>Feature Definitions"]
-            GCS4["📦 Model Artifacts<br/>━━━━━━━━━━━━━━━<br/>Checkpoints (.ckpt)"]
+            GCS1["📦 Data Lakehouse<br/>━━━━━━━━━━━━━━━<br/>Đồng/Bạc/Vàng<br/>Apache Iceberg"]
+            GCS2["📦 Vector Sản phẩm<br/>━━━━━━━━━━━━━━━<br/>Parquet 384 chiều<br/>~14GB"]
+            GCS3["📦 Sổ đăng ký Feast<br/>━━━━━━━━━━━━━━━<br/>Định nghĩa Đặc trưng"]
+            GCS4["📦 Tạo tác Mô hình<br/>━━━━━━━━━━━━━━━<br/>Điểm lưu (.ckpt)"]
         end
 
-        subgraph GCP_COMPUTE["🖥️ CPU Compute"]
-            CLOUD_RUN["🌐 Cloud Run<br/>━━━━━━━━━━━━━━━<br/>Serving API<br/>FastAPI Container<br/>Auto-scale 0→N<br/>💰 Pay-per-request"]
-            QDRANT_SVC["🔍 Qdrant Service<br/>━━━━━━━━━━━━━━━<br/>Vector Database<br/>CPU-Only Mode<br/>ANN Index"]
+        subgraph GCP_COMPUTE["🖥️ Máy tính CPU"]
+            CLOUD_RUN["🌐 Cloud Run<br/>━━━━━━━━━━━━━━━<br/>API Phục vụ<br/>FastAPI Container<br/>Tự động mở rộng 0→N<br/>💰 Trả theo Yêu cầu"]
+            QDRANT_SVC["🔍 Dịch vụ Qdrant<br/>━━━━━━━━━━━━━━━<br/>Cơ sở dữ liệu Vector<br/>Chế độ Chỉ dùng CPU<br/>Chỉ mục ANN"]
         end
 
-        subgraph GCP_DB["🗃️ Managed Databases"]
-            DATASTORE["⚡ Cloud Datastore<br/>━━━━━━━━━━━━━━━<br/>Feast Online Store<br/>Key-Value Lookup<br/>💰 Free tier eligible"]
+        subgraph GCP_DB["🗃️ Cơ sở dữ liệu Quản lý"]
+            DATASTORE["⚡ Cloud Datastore<br/>━━━━━━━━━━━━━━━<br/>Lưu trữ Trực tuyến Feast<br/>Tra cứu Khóa-Giá trị<br/>💰 Nằm trong Dải Miễn phí"]
         end
 
-        GCP_COST["💳 Budget: $300 Credit<br/>━━━━━━━━━━━━━━━<br/>⚠️ Nghiêm cấm kích hoạt<br/>thanh toán ngoài credit"]
+        GCP_COST["💳 Ngân sách: $300 Credit<br/>━━━━━━━━━━━━━━━<br/>⚠️ Nghiêm cấm kích hoạt<br/>thanh toán ngoài credit"]
     end
 
-    subgraph EXTERNAL_API["🌍 EXTERNAL APIs"]
-        GEMINI["🤖 Gemini API<br/>━━━━━━━━━━━━━━━<br/>LLM Reranking<br/>+ Semantic Cache<br/>💰 Pay-per-token"]
+    subgraph EXTERNAL_API["🌍 CÁC API BÊN NGOÀI"]
+        GEMINI["🤖 API Gemini<br/>━━━━━━━━━━━━━━━<br/>LLM Xếp hạng lại<br/>+ Bộ nhớ đệm Ngữ nghĩa<br/>💰 Trả theo Token"]
     end
 
     %% Connections
-    TRAIN_JOB -->|"Upload Checkpoint"| GCS4
-    EMB_JOB -->|"Upload Embeddings"| GCS2
-    GCS2 -->|"Ingest Pipeline<br/>CPU-only"| QDRANT_SVC
-    GCS4 -->|"Load Weights"| CLOUD_RUN
-    DATASTORE <-->|"Feature Serving"| CLOUD_RUN
-    CLOUD_RUN <-->|"ANN Query"| QDRANT_SVC
-    CLOUD_RUN <-->|"Rerank Request"| GEMINI
+    TRAIN_JOB -->|"Tải lên Điểm lưu"| GCS4
+    EMB_JOB -->|"Tải lên Vector nhúng"| GCS2
+    GCS2 -->|"Đường ống Nạp dữ liệu<br/>Chỉ dùng CPU"| QDRANT_SVC
+    GCS4 -->|"Tải Trọng số"| CLOUD_RUN
+    DATASTORE <-->|"Phục vụ Đặc trưng"| CLOUD_RUN
+    CLOUD_RUN <-->|"Truy vấn ANN"| QDRANT_SVC
+    CLOUD_RUN <-->|"Yêu cầu Xếp hạng lại"| GEMINI
 
     style FINOPS_PRINCIPLES fill:#fbbf24,stroke:#d97706,color:#1c1917
     style LIGHTNING_AI fill:#7c3aed,stroke:#6d28d9,color:#ede9fe
