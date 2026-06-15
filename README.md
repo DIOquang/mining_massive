@@ -1,4 +1,4 @@
-<![CDATA[<div align="center">
+<div align="center">
 
 # 🏗️ TWO-TOWER RECOMMENDATION SYSTEM
 
@@ -599,4 +599,3 @@ feast materialize <START_DATE> <END_DATE>
 **Phạm Minh Quang** · 2A202600263 · Mining Massive Datasets
 
 </div>
-]]>
